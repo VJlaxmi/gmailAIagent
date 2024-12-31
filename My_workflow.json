@@ -1,0 +1,413 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "event": "=messageReceived",
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -420,
+        -20
+      ],
+      "id": "6bc0e502-a644-4e22-867f-d0fd37114a9e",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yGm4iA4NayggEv94",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44bef7eb-ad47-42fe-a8d2-49b9ba25c972",
+              "name": "Email Context",
+              "value": "=sender Email Address:\n{{ $json.from.value[0].address }}\n\nEmail Subject:\n{{ $json.subject }}\n\nEmail Body:\n{{ $json.text }}\n\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -180,
+        -20
+      ],
+      "id": "52c02aa0-e389-4643-9319-6f34e33fd4f1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=your role is to determine if an email is related to a job opening or not.\n\nRespond with a JSON object with the following fields:\n- isJobs: which can be either true or false\n- reasoning: explain your answer\n- lead_name: the name of the person as per the email body, leave blank if not a job opening email\n\nThink carefully about your answer\n\n{{ $json['Email Context'] }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        80,
+        -20
+      ],
+      "id": "8eb011c4-6b62-4591-8b15-01301908c12b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"isJobs\": {\n\t\t\t\"type\": \"boolean\"\n\t\t},\n\t\t\"reasoning\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n      \"lead_name\": {\n        \"type\": \"string\"\n\t},\n      \"lead_company\": {\n        \"type\": \"string\"\n    }\n}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        360
+      ],
+      "id": "d7bc33f4-da40-48d4-b97c-deccf874f992",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.0-pro-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        360
+      ],
+      "id": "663f66e9-c4e3-44ef-aff5-dd337ac713c9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2DA59yvXqXqaWDca",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b14bc6ed-5e06-4f79-a468-4f409770f093",
+              "leftValue": "={{ $json.output.isJobs }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        -20
+      ],
+      "id": "5cb7993d-2649-4433-be3b-b21bb8e10501",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        160
+      ],
+      "id": "048a27bd-6d56-4387-9b53-72fbbde1f316",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "apppWT9iNCboMreOI",
+          "mode": "list",
+          "cachedResultName": "blockchain",
+          "cachedResultUrl": "https://airtable.com/apppWT9iNCboMreOI"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8CqX4fDau7u3aX",
+          "mode": "list",
+          "cachedResultName": "blockchain",
+          "cachedResultUrl": "https://airtable.com/apppWT9iNCboMreOI/tbl8CqX4fDau7u3aX"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+            "Reasoning": "={{ $json.output.reasoning }}",
+            "Name": "={{ $json.output.lead_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reasoning",
+              "displayName": "Reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        700,
+        -40
+      ],
+      "id": "0bc665a3-1a66-4a4c-9d5e-b85c401ef7de",
+      "name": "Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "hIG0BtSqTzPRLYkZ",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=your role is to reply to the mailby understanding context.\ndon't include subject while replying.\nuse new line whereever it's necessary. \nuse best regards, vijaya",
+              "role": "system"
+            },
+            {
+              "content": "=EMAIL CONTEXT:\n {{ $('Edit Fields').item.json['Email Context'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [
+        960,
+        -40
+      ],
+      "id": "cd2c0af8-e9eb-45e7-85d1-b5dc49ebe927",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "iP9gHbQWIuxNH8NG",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "message": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        -40
+      ],
+      "id": "54daba02-9bd0-4d92-8ede-015b36c5cd18",
+      "name": "Gmail",
+      "webhookId": "6cacb761-df74-48d9-8ea4-2fd2ccfa9ebf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yGm4iA4NayggEv94",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "22cff417-08e6-4a0c-abbc-4ba659188af8",
+  "meta": {
+    "instanceId": "e5856753d623827e0da39ec2f7789d4d868543526f8fc2c6d6d007b6ada5f46a"
+  },
+  "id": "p42l6y479bMkknIK",
+  "tags": []
+}
